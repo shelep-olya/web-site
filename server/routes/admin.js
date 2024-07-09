@@ -89,7 +89,7 @@ router.get('/dashboard', authMiddleware, async (req, res) =>{
 router.post('/signup', async (req, res) =>{
     try{
         const {username, password} =req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
+       const hashedPassword = await bcrypt.hash(password, 10);
         try{
             const user = await User.create({username, password: hashedPassword});
             res.status(201).json({message: 'user created'});

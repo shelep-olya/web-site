@@ -1,100 +1,99 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Post = require('../models/post');
+const Post = require("../models/post");
 
-//Routes
-// router.get('', async (req, res) =>{
-//     const locals = {
-//         title: "Mackdu Blog",
-//         description: "Simple blog created with NodeJs, Express & MongoDB."
-//     };
-//     try{
-//         const data = await Post.find();
-//         res.render('index', {locals, data});
-//     }catch(error){
-//         console.log(error);
-//     }
-    
-// });
-router.get('', async (req, res) =>{
+// Головна сторінка з пагінацією
+router.get("", async (req, res) => {
+  try {
+    const locals = {
+      title: "Mackdu Blog",
+      description: "Simple blog created with NodeJs, Express & MongoDB.",
+    };
 
-    try{
-        const locals = {
-            title: "Mackdu Blog",
-            description: "Simple blog created with NodeJs, Express & MongoDB."
-        }
-        let perPage = 10;
-        let page = req.query.page || 1;
-        const data = await Post.aggregate([{$sort:{createdAT: -1}}])
-        .skip(perPage * page - perPage)
-        .limit(perPage)
-        .exec();
-        const count = await Post.countDocuments();
-        const nextPage = parseInt(page) + 1;
-        const hasNextPage = nextPage <= Math.ceil(count/ perPage);
-        res.render('index',{ 
-        locals,
-        data,
-        curent: page,
-        nextPage: hasNextPage ? nextPage : null,
-        currentRoute: '/'
-        });
-    }catch(error){
-        console.log(error);
-    }
-    
+    let perPage = 10;
+    let page = parseInt(req.query.page) || 1;
+
+    const data = await Post.aggregate([{ $sort: { createdAt: -1 } }])
+      .skip(perPage * (page - 1))
+      .limit(perPage)
+      .exec();
+    const count = await Post.countDocuments();
+    const nextPage = page + 1;
+    const hasNextPage = nextPage <= Math.ceil(count / perPage);
+
+    res.render("index", {
+      locals,
+      data,
+      current: page,
+      nextPage: hasNextPage ? nextPage : null,
+      currentRoute: "/",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("error", { error });
+  }
 });
-router.get('/post/:id', async (req, res) => {
 
+// Сторінка окремого поста
+router.get("/post/:id", async (req, res) => {
   try {
     let slug = req.params.id;
-    const data = await Post.findById({_id: slug});
+    const data = await Post.findById(slug);
+
     const locals = {
-        title: data.title,
-        description: "Simple blog created with NodeJs, Express & MongoDB.",
-        currentRoute: `/post/${slug}`
-      }
+      title: data.title,
+      description: "Simple blog created with NodeJs, Express & MongoDB.",
+      currentRoute: `/post/${slug}`,
+    };
 
-    res.render('post', { locals, data, currentRoute });
+    res.render("post", { locals, data, currentRoute: "/post" });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    res.status(500).render("error", { error });
   }
-
 });
 
-router.post('/search', async (req, res) => {
+// Пошук постів
+router.post("/search", async (req, res) => {
   try {
     const locals = {
-        title: "search",
-        description: "Simple blog created with NodeJs, Express & MongoDB."
-      }
-      let searchTerm = req.body.searchTerm;
-      const searchNoSpecialChar = searchTerm.replace(/[^a-zA-z0-9]/g, "");
+      title: "Search Results",
+      description: "Simple blog created with NodeJs, Express & MongoDB.",
+    };
 
-    const data = await Post.find(
-      {
-        $or: [
-          {title: {$regex: new RegExp(searchNoSpecialChar, 'i')}},
-          {body: {$regex: new RegExp(searchNoSpecialChar, 'i')}}
-        ]
-      }
-    );
+    let searchTerm = req.body.searchTerm;
+    const searchNoSpecialChar = searchTerm.replace(/[^a-zA-Z0-9]/g, "");
+
+    const data = await Post.find({
+      $or: [
+        { title: { $regex: new RegExp(searchNoSpecialChar, "i") } },
+        { body: { $regex: new RegExp(searchNoSpecialChar, "i") } },
+      ],
+    });
+
     res.render("search", {
+      locals,
       data,
-      locals
-
+      currentRoute: "/search",
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    res.status(500).render("error", { error });
   }
-  
-})
-router.get('/about', (req, res) =>{
-    res.render('about',{
-      currentRoute: '/about'
-    });
 });
-router.get('/contact', (req, res) =>{
-    res.render('contact', {currentRoute: req.path});
+
+// Сторінка "Про нас"
+router.get("/about", (req, res) => {
+  res.render("about", {
+    currentRoute: "/about",
+  });
 });
-module.exports = router; 
+
+// Сторінка "Контакти"
+router.get("/contact", (req, res) => {
+  res.render("contact", {
+    currentRoute: "/contact",
+  });
+});
+
+module.exports = router;
